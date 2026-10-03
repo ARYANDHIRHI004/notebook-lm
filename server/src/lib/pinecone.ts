@@ -173,12 +173,14 @@ export async function queryWorkspaceVectors(
     workspaceId: string,
     vector: number[],
     topK: number,
+    filter?: Record<string, unknown>,
 ) {
     const index = await getPineconeIndex();
     const result = await index.namespace(workspaceId).query({
         vector,
         topK,
         includeMetadata: true,
+        ...(filter ? { filter } : {}),
     });
 
     return result.matches ?? [];

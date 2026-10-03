@@ -51,3 +51,37 @@ export async function embedTexts(texts: string[]): Promise<number[][]> {
         .sort((a, b) => a.index - b.index)
         .map((item) => item.embedding);
 }
+
+export type ChatCompletionMessage = {
+    role: "system" | "user" | "assistant";
+    content: string;
+};
+
+/**
+ * Generates a chat completion using the configured OpenAI chat model.
+ */
+export async function generateChatCompletion(
+    messages: ChatCompletionMessage[],
+    model?: string,
+): Promise<string> {
+    if (!process.env.OPENAI_API_KEY) {
+        throw new Error("OPENAI_API_KEY is not configured");
+    }
+
+    if (!client) {
+        client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    }
+
+    const response = await client.chat.completions.create({
+        model: model ?? CHAT_MODEL,
+        messages,
+        temperature: 0.3,
+    });
+
+    const content = response.choices[0]?.message?.content?.trim();
+    if (!content) {
+        throw new Error("OpenAI returned an empty completion");
+    }
+
+    return content;
+}

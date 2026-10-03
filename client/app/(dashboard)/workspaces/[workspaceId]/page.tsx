@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
-  ArrowUp,
-  Bot,
   FileText,
   Globe,
   Headphones,
@@ -59,6 +57,7 @@ import {
   type Source,
   type SourceType,
 } from "@/features/source";
+import { SourceChatPanel } from "@/features/chat";
 
 function formatFileSize(bytes?: number) {
   if (!bytes) return "";
@@ -96,7 +95,7 @@ export default function WorkspaceDetailPage() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sourceSearch, setSourceSearch] = useState("");
-  const [message, setMessage] = useState("");
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
 
   // Settings form state
   const [editTitle, setEditTitle] = useState("");
@@ -122,6 +121,12 @@ export default function WorkspaceDetailPage() {
       setEditIcon(workspace.icon || "📁");
     }
   }, [workspace]);
+
+  useEffect(() => {
+    if (sources.length > 0 && !selectedSourceId) {
+      setSelectedSourceId(String(sources[0]!.id));
+    }
+  }, [sources, selectedSourceId]);
 
   const handleUpdateSettings = async () => {
     if (!editTitle.trim()) return;
@@ -215,6 +220,9 @@ export default function WorkspaceDetailPage() {
   const filteredSources = sources.filter((source) =>
     (source.title || source.name || "").toLowerCase().includes(sourceSearch.toLowerCase())
   );
+
+  const selectedSource =
+    sources.find((source) => String(source.id) === selectedSourceId) ?? null;
 
   const displayName = workspace?.title || workspace?.name || "Workspace";
   const displayDescription =
@@ -354,7 +362,12 @@ export default function WorkspaceDetailPage() {
                 </div>
               ) : (
                 filteredSources.map((source) => (
-                  <SourceSidebarItem key={source.id} source={source} />
+                  <SourceSidebarItem
+                    key={source.id}
+                    source={source}
+                    selected={selectedSourceId === source.id}
+                    onSelect={() => setSelectedSourceId(String(source.id))}
+                  />
                 ))
               )}
             </div>
@@ -604,80 +617,12 @@ export default function WorkspaceDetailPage() {
         </header>
 
         {/* Conversation View */}
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 overflow-y-auto p-4 md:p-6">
-            <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary text-2xl">
-                {workspace?.icon ? (
-                  <span>{workspace.icon}</span>
-                ) : (
-                  <Bot className="h-7 w-7" />
-                )}
-              </div>
-
-              <h3 className="mt-4 text-lg font-semibold md:text-xl">
-                {isLoading ? (
-                  <Skeleton className="mx-auto h-6 w-48" />
-                ) : (
-                  `Explore ${displayName}`
-                )}
-              </h3>
-
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-                Quire will search through your workspace sources to find
-                answers, synthesize insights, and build explanations.
-              </p>
-
-              <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
-                <SuggestedQuestion>
-                  Summarize the key findings from all uploaded papers
-                </SuggestedQuestion>
-                <SuggestedQuestion>
-                  Compare the architectures described across these sources
-                </SuggestedQuestion>
-                <SuggestedQuestion>
-                  What are the open challenges and future research directions?
-                </SuggestedQuestion>
-                <SuggestedQuestion>
-                  Draft a comprehensive literature review outline
-                </SuggestedQuestion>
-              </div>
-            </div>
-          </div>
-
-          {/* Prompt Input Box */}
-          <div className="border-t bg-background/80 p-4 backdrop-blur md:px-6">
-            <div className="mx-auto max-w-3xl">
-              <div className="relative rounded-xl border bg-background shadow-xs focus-within:ring-2 focus-within:ring-primary/20">
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder={`Ask a question about ${displayName}...`}
-                  className="min-h-[90px] w-full resize-none border-0 bg-transparent p-3 pb-12 focus-visible:ring-0 focus-visible:outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      setMessage("");
-                    }
-                  }}
-                />
-
-                <Button
-                  size="icon"
-                  className="absolute bottom-3 right-3 h-8 w-8"
-                  disabled={!message.trim()}
-                  onClick={() => setMessage("")}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <p className="mt-2 text-center text-[11px] text-muted-foreground">
-                Answers are generated from your workspace sources.
-              </p>
-            </div>
-          </div>
-        </div>
+        <SourceChatPanel
+          workspaceId={workspaceId}
+          source={selectedSource}
+          workspaceIcon={workspace?.icon}
+          workspaceName={displayName}
+        />
       </main>
 
       {/* ───────────────── PDF Upload Modal ───────────────── */}
@@ -826,12 +771,27 @@ export default function WorkspaceDetailPage() {
 
 /* ───────────────── Source Sidebar Item ───────────────── */
 
-function SourceSidebarItem({ source }: { source: Source }) {
+function SourceSidebarItem({
+  source,
+  selected,
+  onSelect,
+}: {
+  source: Source;
+  selected?: boolean;
+  onSelect?: () => void;
+}) {
   const Icon = getSourceIcon(source.type);
   const displayName = source.title || source.name || "Untitled Source";
 
   return (
-    <button className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent">
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-accent",
+        selected && "bg-accent ring-1 ring-primary/20",
+      )}
+    >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted">
         <Icon className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -889,16 +849,6 @@ function SourceModalItem({
         )}
       </Button>
     </div>
-  );
-}
-
-/* ───────────────── Suggested Question ───────────────── */
-
-function SuggestedQuestion({ children }: { children: React.ReactNode }) {
-  return (
-    <button className="rounded-lg border bg-card p-3 text-left text-sm transition-colors hover:bg-accent">
-      <span className="text-muted-foreground">{children}</span>
-    </button>
   );
 }
 

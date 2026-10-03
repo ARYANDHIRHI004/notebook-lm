@@ -1,0 +1,1 @@
+ALTER TABLE "conversation" ALTER COLUMN "workspace_id" SET DATA TYPE uuid;

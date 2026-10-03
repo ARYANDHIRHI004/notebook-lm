@@ -62,6 +62,19 @@ export async function listSourcesByWorkspaceId(
     .orderBy(source.createdAt);
 }
 
+export async function findSourceByIdAndWorkspace(
+  sourceId: string,
+  workspaceId: string,
+): Promise<SourceRecord | undefined> {
+  const [result] = await db
+    .select()
+    .from(source)
+    .where(and(eq(source.id, sourceId), eq(source.workspaceId, workspaceId)))
+    .limit(1);
+  console.log("aryan", result);
+  return result;
+}
+
 export async function deleteSourceById(
   sourceId: string,
   workspaceId: string,

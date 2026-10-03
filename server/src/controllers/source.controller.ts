@@ -34,7 +34,7 @@ export async function listSources(req: Request, res: Response) {
   if (!userId) throw new UnauthorizedError("Unauthorized");
   if (!workspaceId) throw new ValidationError("Workspace ID is required");
 
-  const sources = await listSourcesService(workspaceId, userId);
+  const sources = await listSourcesService(workspaceId as string, userId);
   res.status(200).json(sources);
 }
 
@@ -46,6 +46,6 @@ export async function deleteSource(req: Request, res: Response) {
   if (!workspaceId) throw new ValidationError("Workspace ID is required");
   if (!sourceId) throw new ValidationError("Source ID is required");
 
-  const deleted = await deleteSourceService(sourceId, workspaceId, userId);
+  const deleted = await deleteSourceService(sourceId as string, workspaceId as string, userId);
   res.status(200).json(deleted);
 }
